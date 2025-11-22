@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import similarity, embedding
+from app.routers import similarity
 from app.core.config import settings
 
 app = FastAPI(title=settings.PROJECT_NAME)
@@ -14,7 +14,6 @@ app.add_middleware(
 )
 
 app.include_router(similarity.router)
-app.include_router(embedding.router)
 
 @app.get("/")
 def home():
