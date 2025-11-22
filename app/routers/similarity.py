@@ -1,22 +1,27 @@
+import requests
+import numpy as np
 from fastapi import APIRouter
 from app.models.schemas import TextPair
-from sentence_transformers import SentenceTransformer, util
 from app.core.config import settings
-from app.utils.logging_config import setup_logging
 
-router = APIRouter()
-logger = setup_logging()
+router = APIRouter(prefix="/similarity")
 
-model = SentenceTransformer(settings.EMBEDDING_MODEL)
+HF_API_URL = "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2"
 
-@router.post("/similarity")
-def get_similarity(data: TextPair):
-    logger.info(f"Calculating similarity between '{data.text1}' and '{data.text2}'")
-    
-    emb1 = model.encode(data.text1)
-    emb2 = model.encode(data.text2)
-    score = float(util.cos_sim(emb1, emb2))
-    
-    logger.info(f"Similarity score: {score}")
-    
+headers = {"Authorization": f"Bearer {settings.HF_API_KEY}"}
+
+def get_embedding(text: str):
+    response = requests.post(HF_API_URL, headers=headers, json={"inputs": text})
+    return response.json()
+
+def cosine_similarity(a, b):
+    a = np.array(a)
+    b = np.array(b)
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+@router.post("")
+def compute_similarity(texts: TextPair):
+    emb1 = get_embedding(texts.text1)
+    emb2 = get_embedding(texts.text2)
+    score = cosine_similarity(emb1, emb2)
     return {"similarity": score}
